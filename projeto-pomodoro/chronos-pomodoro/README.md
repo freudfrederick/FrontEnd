@@ -142,13 +142,13 @@ export function App() {
 }
 ```
 
-## 🕵️‍♂️ 5. Por que meu console.log roda duas vezes?
+## 🕵️‍♂️ 5. Por que meu `console.log` roda duas vezes?
 
-Se você colocar um console.log("Oi") dentro do seu componente e olhar o console
-do navegador, notará que a mensagem aparece duplicada.
+Se você colocar um `console.log("Oi")` dentro do seu componente e olhar o
+console do navegador, notará que a mensagem aparece duplicada.
 
 **Isso não é um erro do seu código!** Isso acontece por causa do
-`<React.StrictMode>` que envolve nossa aplicação no main.jsx. O Strict Mode
+`<React.StrictMode>` que envolve nossa aplicação no `main.jsx`. O Strict Mode
 renderiza seus componentes propositalmente **duas vezes** no ambiente de
 desenvolvimento. Essa é uma ferramenta do React para testar se o seu código tem
 efeitos colaterais indesejados.
