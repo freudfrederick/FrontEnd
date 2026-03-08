@@ -1,157 +1,119 @@
-# ⚛️ Criando o Primeiro Componente React
+# 🎨 Estilização Global no React
 
-Nesta aula, daremos o nosso primeiro passo prático no React: limpar os arquivos
-padrões gerados pelo Vite e criar o nosso próprio componente do zero. Vamos
-entender as regras de nomenclatura, como exportar/importar arquivos e as regras
-básicas do JSX.
+Nesta aula, vamos aprender como adicionar e organizar o CSS na nossa aplicação
+React. Inicialmente, focaremos no **CSS Global** (sem escopo), ou seja, estilos
+que são aplicados a qualquer elemento da página.
 
----
-
-## 🧹 1. Limpando o Projeto Padrão
-
-Quando criamos um projeto com o Vite, ele traz vários arquivos de exemplo. Para
-começarmos do zero, vamos limpar nossa pasta `src`:
-
-1. Apague os arquivos `App.jsx` (ou `App.tsx`), `App.css` e `index.css`.
-2. No arquivo `main.jsx` (ou `main.tsx`), remova as linhas de importação dos
-   arquivos CSS e do componente App que acabamos de apagar.
-3. Se você salvar agora, provavelmente verá um erro ou uma tela em branco. Isso
-   é normal, pois acabamos de remover o que estava sendo renderizado!
-
-> **💡 Dica:** Você poderia escrever todo o seu HTML diretamente dentro do
-> `main.jsx`, mas essa não é uma boa prática. O poder do React está em separar a
-> interface em **Componentes**.
+_(Nota: O uso de CSS com escopo, utilizando CSS Modules, será abordado na
+próxima aula)._
 
 ---
 
-## 🧩 2. O que é um Componente React?
+## 🌍 1. Entendendo o CSS Global no React
 
-Um componente React é, basicamente, uma **função JavaScript que retorna JSX**
-(uma sintaxe que mistura HTML com JavaScript).
+O React não é um framework rígido, o que significa que você tem a liberdade de
+organizar seus estilos da maneira que preferir.
 
-### Regra de Nomenclatura: PascalCase
+A forma mais básica de adicionar estilo a um componente (como o `App.jsx`) é
+criar um arquivo CSS com o mesmo nome (ex: `App.css`) e importá-lo diretamente
+no arquivo JavaScript.
 
-Todo componente React **deve** começar com letra maiúscula e seguir o padrão
-**PascalCase** (cada palavra da variável começa com letra maiúscula, sem
-espaços).
-
-**Exemplos:**
-
-- ❌ `app` ➡️ ✅ `App`
-- ❌ `cabeçalho` ➡️ ✅ `Header` (preferência por inglês) ou `Cabecalho`
-- ❌ `exemplo de componente` ➡️ ✅ `ExemploDeComponente`
-
-### Extensões de Arquivo
-
-Ao criar componentes, utilizamos extensões específicas para avisar ao editor que
-aquele arquivo contém JSX:
-
-- `.jsx`: Para projetos usando JavaScript.
-- `.tsx`: Para projetos usando TypeScript.
+**Atenção:** Qualquer CSS importado dessa forma padrão vaza para a aplicação
+inteira. Se você estilizar o `<body>` ou a tag `<h1>`, isso afetará todas as
+páginas do seu projeto.
 
 ---
 
-## 🛠️ 3. Criando e Exportando o Componente
+## 🗂️ 2. Organizando a Estrutura de Estilos (Boa Prática)
 
-Vamos criar o nosso componente principal, o `App`.
+Para evitar arquivos CSS gigantes e desorganizados, uma excelente prática
+adotada por muitos times é separar as **variáveis de tema** dos **estilos
+globais genéricos**.
 
-Existem duas formas de exportar um componente para usá-lo em outros arquivos.
-Vamos ver a diferença:
+Vamos criar a seguinte estrutura de pastas e arquivos dentro de `src/`:
 
-### Forma 1: Exportação Padrão (Default Export) - _Menos Recomendada_
-
-```jsx
-// App.jsx
-function App() {
-  return <h1>Olá, Mundo!</h1>;
-}
-export default App;
+```text
+src/
+└── styles/
+    ├── theme.css
+    └── global.css
 ```
 
-Problema: Na hora de importar, você pode dar o nome que quiser (ex:
-`import QualquerCoisa from './App'`), o que pode gerar confusão no código.
+## 🎨 3. Criando Variáveis de Tema (theme.css)
 
-**Forma 2: Exportação Nomeada (Named Export) - Recomendada!**
+O arquivo `theme.css` servirá exclusivamente para armazenar nossas variáveis CSS
+puras (cores, espaçamentos, tipografia). Isso facilitará muito a criação de
+temas (como Claro/Escuro) no futuro.
 
-```jsx
-// App.jsx
-export function App() {
-  return <h1>Olá, Mundo do React!</h1>;
-}
-```
+Abra o arquivo `src/styles/theme.css` e crie sua primeira variável:
 
-Vantagem: Na hora de importar, você é obrigado a usar o nome exato do
-componente, evitando erros.
-
-Para usar esse componente no seu `main.jsx`, importamos entre chaves e
-renderizamos como uma tag HTML:
-
-```jsx
-// main.jsx
-import { App } from './App.jsx';
-
-// ...dentro do render:
-<App />;
-```
-
-## 📐 4. A Regra de Ouro do JSX e o React Fragment
-
-O JSX tem uma regra rígida: **Um componente só pode retornar um único elemento
-pai.**
-
-Se você tentar retornar dois elementos lado a lado, o React vai gerar um erro:
-
-```jsx
-// ❌ ERRO: Retornando dois elementos soltos
-export function App() {
-  return (
-    <h1>Título</h1>
-    <p>Parágrafo</p>
-  );
+```css
+/* src/styles/theme.css */
+:root {
+  --primary: pink;
 }
 ```
 
-**A Solução: Envolver os elementos** Você pode envolver tudo em uma `<div>`:
+## 💅 4. Aplicando o Estilo Global (global.css)
 
-```jsx
-// ✅ Funciona (mas cria uma div extra no HTML final)
-export function App() {
-  return (
-    <div>
-      <h1>Título</h1>
-      <p>Parágrafo</p>
-    </div>
-  );
+O arquivo `global.css` será usado para resetar margens, definir fontes padrão e
+estilizar tags base do HTML (`body`, `h1`, `a`, `p`, etc.).
+
+Aqui, nós já podemos utilizar as variáveis que criamos no arquivo de tema. Abra
+o `src/styles/global.css` e adicione:
+
+```css
+/* src/styles/global.css */
+body {
+  font-family: sans-serif;
+  font-size: 30px;
+}
+
+h1 {
+  color: var(--primary); /* Consumindo a variável pink criada no theme.css */
 }
 ```
 
-**A Melhor Solução: React Fragment (`<> </>`)** Se você não quer criar `<div>`
-desnecessárias que podem atrapalhar seu CSS (como layouts em Flexbox), use o
-**Fragment**. Ele agrupa os elementos para o React, mas desaparece no HTML
-final.
+## 🔗 5. Importando os Estilos no Componente
 
-```jsx
-// ✅ Perfeito! Agrupa sem sujar o HTML
+Agora que temos nossos estilos separados, precisamos avisar ao React para
+carregá-los. Faremos isso no nosso componente principal (`App.jsx` ou
+`App.tsx`).
+
+⚠️ **MUITO IMPORTANTE: A ordem de importação importa!** > Como o `global.css`
+utiliza variáveis que estão no `theme.css`, o arquivo de tema **deve ser
+importado primeiro**.
+
+Abra o seu arquivo `App.jsx` e adicione as importações no topo:
+
+```javascript
+// src/App.jsx
+
+// 1º: Importamos as variáveis (o tema)
+import './styles/theme.css';
+// 2º: Importamos os estilos globais
+import './styles/global.css';
+
 export function App() {
   return (
     <>
-      <h1>Título</h1>
-      <p>Parágrafo</p>
+      <h1>Olá, Mundo!</h1>
+      <p>Testando o CSS Global.</p>
     </>
   );
 }
 ```
 
-## 🕵️‍♂️ 5. Por que meu `console.log` roda duas vezes?
+## 🐛 6. Dica de Ouro: Leia os Erros!
 
-Se você colocar um `console.log("Oi")` dentro do seu componente e olhar o
-console do navegador, notará que a mensagem aparece duplicada.
+Ao mover arquivos ou apagar arquivos CSS antigos (como o `App.css` padrão que
+vem no Vite), o React pode apresentar uma **tela em branco** no navegador ou
+exibir um grande erro vermelho.
 
-**Isso não é um erro do seu código!** Isso acontece por causa do
-`<React.StrictMode>` que envolve nossa aplicação no `main.jsx`. O Strict Mode
-renderiza seus componentes propositalmente **duas vezes** no ambiente de
-desenvolvimento. Essa é uma ferramenta do React para testar se o seu código tem
-efeitos colaterais indesejados.
+Sempre que isso acontecer:
 
-Quando o projeto for gerado para produção (Build), isso deixará de acontecer.
-Portanto, não se preocupe com logs duplicados durante o desenvolvimento!
+1. Olhe a tela do navegador.
+2. Olhe o terminal onde o servidor (`npm run dev`) está rodando.
+3. **Leia a mensagem de erro!** Geralmente, o erro informará que você está
+   tentando importar um arquivo CSS que não existe mais no caminho especificado.
+   Basta corrigir o caminho no comando `import` para resolver.
