@@ -1,146 +1,190 @@
-# 🎨 Estilizando o Componente Input e Dominando Pseudo-classes
+# 🔵 Criando o Componente de Ciclos e Concatenando Classes
 
-Depois de garantirmos que a estrutura e a tipagem do nosso componente estão
-perfeitas, agora é hora de deixá-lo bonito!
+Nesta aula, vamos criar o componente que mostra o progresso do usuário através
+daquelas "bolinhas" (ciclos).
 
-Nesta aula, voltamos para uma área um pouco mais familiar: o CSS. Vamos aprender
-a utilizar pseudo-classes (`:focus`, `:disabled`, `::placeholder`) para
-estilizar os diferentes "estados" do nosso input.
+Vamos extrair aquela estrutura feia que deixamos no `App.tsx` e criar um
+componente próprio. No processo, vamos aprender uma técnica essencial no React:
+**como aplicar mais de uma classe CSS dinâmica no mesmo elemento**.
 
 ---
 
-## 🏗️ 1. Vinculando o CSS Module
+## 🏗️ 1. Criando a Estrutura do Componente
 
-Primeiro, vamos criar o arquivo de estilos e vinculá-lo ao nosso componente.
+Crie a pasta `Cycles` dentro de `components`, junto com os arquivos `index.tsx`
+e `styles.module.css`.
 
-**Arquivo:** `src/components/DefaultInput/index.tsx` _(ou .jsx)_
+A nossa estrutura será uma `div` principal (container), um texto e uma `div`
+interna para agrupar as bolinhas (que serão tags `<span>`). Por enquanto, vamos
+renderizar todas as bolinhas manualmente (hardcoded) para focar na estilização.
+
+**Arquivo:** `src/components/Cycles/index.tsx`
 
 ```tsx
-import styles from './styles.module.css'; // <-- Importando o CSS Module
+import styles from './styles.module.css';
 
-type DefaultInputProps = {
-  id: string;
-  labelText: string;
-} & React.ComponentProps<'input'>;
+export function Cycles() {
+  return (
+    <div className={styles.cycles}>
+      <span>Ciclos:</span>
 
-export function DefaultInput({
-  id,
-  type,
-  labelText,
-  ...rest
-}: DefaultInputProps) {
+      <div className={styles.cycleDots}>
+        {/* Renderizaremos as bolinhas aqui no próximo passo! */}
+      </div>
+    </div>
+  );
+}
+```
+
+## 🎨 2. O Estilo Base e o Truque do Círculo
+
+Vamos criar o CSS para alinhar tudo. O nosso container principal ficará em
+coluna, e o container das bolinhas ficará em linha.
+
+Para transformar uma `div` ou `span` em um círculo perfeito, a regra de ouro do
+CSS é: o elemento deve ter a **mesma largura e altura** (um quadrado perfeito) e
+um `border-radius: 50%`.
+
+**Arquivo:** `src/components/Cycles/styles.module.css`
+
+```css
+/* Container principal (Texto + Bolinhas) */
+.cycles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+}
+
+/* Container que segura as bolinhas lado a lado */
+.cycleDots {
+  display: flex;
+  gap: 0.8rem;
+}
+
+/* A bolinha base */
+.cycleDot {
+  width: 2rem;
+  height: 2rem;
+  background-color: var(--primary); /* Cor base */
+  border-radius: 50%; /* Transforma o quadrado em círculo */
+}
+
+/* Cores específicas para os diferentes tipos de ciclo */
+.workTime {
+  background: var(--warning);
+}
+.shortBreakTime {
+  background: var(--primary);
+}
+.longBreakTime {
+  background: var(--info);
+}
+```
+
+_Nota: Estamos usando as variáveis de cor de "alerta" (warning, info) que já
+definimos no nosso tema global por praticidade._
+
+## 🪄 3. O Desafio: Concatenando Classes no CSS Modules
+
+Agora precisamos aplicar as classes nas bolinhas. O problema: cada bolinha
+precisa da classe base (`styles.cycleDot`) E da classe de cor
+(`styles.workTime`, por exemplo).
+
+No React, se tentarmos fazer `className={styles.cycleDot styles.workTime}`, vai
+dar erro de sintaxe. Para juntar duas variáveis dentro de uma string em
+JavaScript/React, usamos a técnica de **Template Literals** (crases e `${}`).
+
+Veja como montamos a sequência do Pomodoro (4 trabalhos, 3 descansos curtos, 1
+descanso longo):
+
+**Arquivo:** `src/components/Cycles/index.tsx`
+
+```tsx
+import styles from './styles.module.css';
+
+export function Cycles() {
+  return (
+    <div className={styles.cycles}>
+      <span>Ciclos:</span>
+
+      <div className={styles.cycleDots}>
+        {/* Usamos ` ${} ${} ` para concatenar as classes do CSS Module */}
+        <span className={`${styles.cycleDot} ${styles.workTime}`}></span>
+        <span className={`${styles.cycleDot} ${styles.shortBreakTime}`}></span>
+        <span className={`${styles.cycleDot} ${styles.workTime}`}></span>
+        <span className={`${styles.cycleDot} ${styles.shortBreakTime}`}></span>
+        <span className={`${styles.cycleDot} ${styles.workTime}`}></span>
+        <span className={`${styles.cycleDot} ${styles.shortBreakTime}`}></span>
+        <span className={`${styles.cycleDot} ${styles.workTime}`}></span>
+        <span className={`${styles.cycleDot} ${styles.longBreakTime}`}></span>
+      </div>
+    </div>
+  );
+}
+```
+
+## 🚀 4. Atualizando o App.tsx
+
+Agora é só irmos no nosso `App.tsx`, removermos aquele HTML feio que tínhamos
+feito antes e importarmos o nosso novo e lindo componente `<Cycles />`.
+
+**Arquivo:** `src/App.tsx`
+
+```tsx
+import { Container } from './components/Container';
+import { Logo } from './components/Logo';
+import { Menu } from './components/Menu';
+import { CountDown } from './components/CountDown';
+import { DefaultInput } from './components/DefaultInput';
+import { Cycles } from './components/Cycles'; // <-- Importado!
+
+import './styles/theme.css';
+import './styles/global.css';
+
+export function App() {
   return (
     <>
-      <label htmlFor={id}>{labelText}</label>
-      {/* Aplicando a classe dinâmica gerada pelo CSS Module */}
-      <input className={styles.input} id={id} type={type} {...rest} />
+      <Container>
+        <Logo />
+      </Container>
+      <Container>
+        <Menu />
+      </Container>
+      <Container>
+        <CountDown />
+      </Container>
+
+      <Container>
+        <form className='form' action=''>
+          <div className='formRow'>
+            <DefaultInput
+              labelText='task'
+              id='meuInput'
+              type='text'
+              placeholder='Digite algo'
+            />
+          </div>
+
+          <div className='formRow'>
+            <p>Lorem ipsum dolor sit amet.</p>
+          </div>
+
+          {/* Substituímos o HTML antigo pelo nosso componente */}
+          <div className='formRow'>
+            <Cycles />
+          </div>
+
+          <div className='formRow'>
+            <button>Enviar</button>
+          </div>
+        </form>
+      </Container>
     </>
   );
 }
 ```
 
-## 🎨 2. A Estilização Base e a Lógica da Borda Transparente
-
-Vamos criar a classe `.input`. O nosso input tem um design limpo, sem fundo e
-apenas com uma linha na parte inferior.
-
-### 🐛 O Problema do "Pulo" (Shift Layout)
-
-Se removermos todas as bordas e adicionarmos uma borda completa apenas no
-`:focus`, o tamanho total do input vai aumentar em `2px` quando o usuário clicar
-nele. Isso faz com que os elementos ao redor "pulem" ou se movam.
-
-### 💡 A Solução
-
-Para evitar isso, nós definimos uma borda de `2px` em todos os lados o tempo
-todo, mas deixamos ela **transparente** (`border: 0.2rem solid transparent;`).
-Assim, o espaço físico da borda já está reservado. Depois, pintamos apenas a
-borda de baixo de fato (`border-bottom: 0.2rem solid var(--primary);`).
-
-**Arquivo:** `src/components/DefaultInput/styles.module.css`
-
-```css
-.input {
-  background-color: transparent;
-  text-align: center;
-  font-size: 1.8rem;
-  padding: 0.8rem;
-  color: var(--text-default);
-  outline: none; /* Remove a borda padrão feia do navegador */
-
-  /* O truque para evitar o "pulo" no layout */
-  border: 0.2rem solid transparent;
-  border-bottom: 0.2rem solid var(--primary);
-
-  /* Transição suave de 0.1s para quando o estado (foco, cor) mudar */
-  transition: all 0.1s ease-in-out;
-}
-```
-
-## 🎯 3. Estilizando Estados com Pseudo-classes
-
-Agora vamos usar o CSS para reagir às ações do usuário e ao estado do HTML.
-
-**O Estado de Foco (`:focus`)** Quando o usuário clica para digitar, queremos
-mostrar a borda completa e arredondar os cantos. Note que adicionamos o
-`border-radius` apenas no foco para evitar que a linha inferior (estado padrão)
-fique parecendo uma "rampinha de skate" nas pontas.
-
-```css
-.input:focus {
-  border-radius: 0.8rem;
-  /* A borda deixa de ser transparente e ganha a cor primária */
-  border: 0.2rem solid var(--primary);
-}
-```
-
-**O Texto de Ajuda** (`::placeholder`) Vamos deixar o texto de instrução (ex:
-"Digite algo") um pouco menor, cinza e em itálico.
-
-```css
-.input::placeholder {
-  color: var(--gray-500);
-  font-size: 1.4rem;
-  font-style: italic;
-}
-```
-
-**O Estado Desativado (`:disabled`)** Em alguns momentos (como quando o
-cronômetro estiver rodando), bloquearemos o input para evitar edições. Quando
-isso acontecer, ele precisa parecer visualmente bloqueado.
-
-```css
-.input:disabled {
-  /* Pintamos a linha de baixo com a cor de desativado do nosso tema */
-  border-bottom: 0.2rem solid var(--disabled);
-  /* A cor do texto digitado fica mais apagada */
-  color: var(--text-muted);
-}
-```
-
-## 🧪 4. Testando no App
-
-Vamos testar como o input se comporta lá no nosso arquivo principal.
-
-⚠️ **Aviso de Bug do Vite/React:** Durante a aula, tentamos usar a propriedade
-`defaultValue="Valor preenchido"` para testar o visual do input com texto. No
-entanto, o recarregamento automático (Live Reload) às vezes falha ao atualizar o
-`defaultValue`. Se o texto não aparecer (ou não sumir quando você apagar o
-código), basta dar um **F5** (atualizar a página) manualmente no navegador!
-
-**Arquivo:** `src/App.tsx`
-
-```tsx
-{
-  /* Dentro do seu formulário... */
-}
-<div className='formRow'>
-  <DefaultInput
-    labelText='task'
-    id='meuInput'
-    type='text'
-    placeholder='Digite algo'
-    /* Tente adicionar a palavra "disabled" (sem aspas) aqui para ver o estado desativado! */
-  />
-</div>;
-```
+Temos nossos ciclos! Se você inspecionar a tela em dispositivos móveis (`F12`),
+verá que os ciclos não quebram o layout e se adaptam super bem.
