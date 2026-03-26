@@ -1,70 +1,139 @@
-# 🤔 Onde colocar o Estado da Aplicação? (Elevação de Estado)
+# 🌐 Inicializando o Estado Global no `App`
 
-Nesta aula, demos uma pausa no código para entender um dos conceitos mais
-cruciais do React: **Onde o Estado (State) deve morar?** Quando criamos a
-mudança de temas (Dark/Light), o estado vivia tranquilamente dentro do
-componente `Menu`, porque apenas ele e o arquivo HTML precisavam saber dessa
-informação. Mas agora, com o `TaskStateModel` que criamos na aula anterior, o
-buraco é mais embaixo.
+Chegou a hora de sujarmos as mãos com o Estado Global no nível superior da nossa
+aplicação e entendermos na prática um conceito muito famoso no React: o Prop
+Drilling (perfuração de propriedades).
 
----
+Nesta aula, vamos criar o estado da nossa aplicação no componente de nível mais
+alto: o `App.tsx`. A partir dele, começaremos a "descer" essas informações para
+as páginas e componentes filhos através de _props_.
 
-## 🗺️ O Mapa das Dependências
-
-Vamos analisar quem precisa saber das informações do nosso timer:
-
-1. **`tasks` (O Histórico):**
-   - A página de Histórico (para listar as tarefas).
-   - O formulário da Home (para adicionar uma nova tarefa à lista quando o
-     usuário der o play).
-2. **`secondsRemaining` e `activeTask` (O Timer):**
-   - O componente `Countdown` (para mostrar os números diminuindo).
-   - O formulário (para saber se o botão deve ser "Iniciar" ou "Interromper").
-   - O `<title>` da página (para mostrar o tempo na aba do navegador).
-3. **`config` (As Configurações de Tempo):**
-   - A página de Configurações (para o usuário alterar os valores).
-   - O Timer (para saber de quanto tempo ele deve começar a contagem
-     regressiva).
+Isso vai gerar um caminho um pouco doloroso, mas muito didático, para
+entendermos por que ferramentas como a _Context API_ existem.
 
 ---
 
-## 🏗️ O Problema do Fluxo de Dados no React
+## 🏗️ 1. O Estado Inicial (`App.tsx`)
 
-No React, o fluxo de dados é **Unidirecional (Top-Down)**. Isso significa que a
-informação flui como uma cachoeira: de cima (Pai) para baixo (Filho), através
-das `props`.
+Primeiro, precisamos definir como o nosso estado começa quando o usuário abre a
+aplicação. Vamos criar um objeto `initialState` respeitando a tipagem do
+`TaskStateModel` que criamos na aula passada.
 
-- Um componente Pai pode passar dados para o Filho.
-- Um componente Filho **não pode** passar dados diretamente para um "componente
-  irmão" (ex: o `Countdown` não consegue enviar dados direto para o `MainForm`).
+Em seguida, usamos o `useState` e passamos o `state` e o `setState` como
+propriedades para a página `<Home />`.
 
-### A Solução: Elevação de Estado (Lifting State Up)
+**Arquivo:** `src/App.tsx`
 
-Se dois ou mais componentes precisam do mesmo estado, nós precisamos "elevar"
-esse estado até o componente que seja Pai de ambos.
+```tsx
+import { Home } from './pages/Home';
+import { useState } from 'react';
+import type { TaskStateModel } from './models/TaskStateModel';
 
-No nosso caso, como a página `Home` (que tem o timer) e a página `History` (que
-tem a lista) precisam dos mesmos dados, o estado não pode morar dentro da
-`Home`. Ele precisa morar um nível acima!
+import './styles/theme.css';
+import './styles/global.css';
 
-Por enquanto, o componente que está acima de todas as páginas é o nosso
-**`App.tsx`**.
+// 1. Definimos o valor inicial da nossa aplicação
+const initialState: TaskStateModel = {
+  tasks: [],
+  secondsRemaining: 0,
+  formattedSecondsRemaining: '00:00',
+  activeTask: null,
+  currentCycle: 0,
+  config: {
+    workTime: 25,
+    shortBreakTime: 5,
+    longBreakTime: 15,
+  },
+};
 
----
+export function App() {
+  // 2. Iniciamos o estado global
+  const [state, setState] = useState(initialState);
 
-## 🚀 O Plano de Ação (Próximas Aulas)
+  // 3. Repassamos o estado e a função que altera o estado para o componente filho
+  return <Home state={state} setState={setState} />;
+}
+```
 
-1. **A Dor (Prop Drilling):** Primeiramente, vamos criar nosso estado gigante
-   dentro do `App.tsx` e ir passando ele via `props` (propriedades) por várias
-   camadas: do `App` para a `Home`, da `Home` para o `MainForm`, do `MainForm`
-   para o `Button`. Isso vai gerar um código bem poluído e difícil de manter.
-2. **O Remédio (Context API):** Depois de sentirmos essa dor na prática, vamos
-   aprender a melhor forma de resolver isso no React: criando um **Contexto**. O
-   Contexto funciona como uma "nuvem" de dados na nossa aplicação; qualquer
-   componente, não importa o quão fundo ele esteja na árvore, pode acessar a
-   nuvem diretamente sem precisar de repasses intermináveis de `props`.
+## ⚠️ 2. A Regra de Ouro do React: Imutabilidade
 
----
+Antes de irmos para a `Home`, o instrutor deixou um aviso importantíssimo sobre
+como atualizar objetos e arrays no estado do React. Você nunca deve alterar um
+objeto mutável diretamente!
 
-Prepare-se, porque na próxima aula vamos começar a construir o motor do nosso
-timer dentro do `App.tsx`!
+### ❌ O jeito ERRADO (Mutação direta):
+
+```tsx
+// Nunca faça isso! O React não vai perceber a mudança e a tela não vai atualizar.
+setState(prevState => {
+  prevState.currentCycle = 5;
+  return prevState;
+});
+```
+
+### ✅ O jeito CERTO (Criando um novo objeto com Spread Operator):
+
+```tsx
+// Sempre retorne um NOVO objeto, copiando tudo o que existia antes (...prevState)
+setState(prevState => {
+  return {
+    ...prevState,
+    currentCycle: 5,
+  };
+});
+```
+
+## 🚚 3. Recebendo o Estado via Props (`Home.tsx`)
+
+Agora, lá na página `Home`, precisamos avisar o TypeScript que este componente
+vai receber propriedades (`props`).
+
+A tipagem do `state` é fácil (`TaskStateModel`), mas a tipagem do `setState` é
+um pouco feia de se ver. No React, a função que altera o estado usa o tipo
+`React.Dispatch<React.SetStateAction<TipoDoEstado>>`.
+
+**Arquivo:** `src/pages/Home/index.tsx`
+
+```tsx
+import { Container } from '../../components/Container';
+import { CountDown } from '../../components/CountDown';
+import { MainForm } from '../../components/MainForm';
+import type { TaskStateModel } from '../../models/TaskStateModel';
+import { MainTemplate } from '../../templates/MainTemplate';
+
+// 1. Tipamos o que a Home vai receber de presente do App
+type HomeProps = {
+  state: TaskStateModel;
+  setState: React.Dispatch<React.SetStateAction<TaskStateModel>>;
+};
+
+export function Home(props: HomeProps) {
+  // 2. Desestruturamos para facilitar o uso
+  const { state, setState } = props;
+
+  return (
+    <MainTemplate>
+      <Container>
+        {/* Em breve, o CountDown vai precisar desse state... */}
+        <CountDown />
+      </Container>
+
+      <Container>
+        {/* ...e o MainForm também! */}
+        <MainForm />
+      </Container>
+    </MainTemplate>
+  );
+}
+```
+
+## 🎯 Onde estamos e para onde vamos?
+
+Você percebeu o que aconteceu? O estado nasceu no `App`, foi enviado para a
+`Home`, mas a `Home` em si não usa esse estado para nada visual! Ela só recebeu
+o estado porque os filhos dela (`CountDown` e `MainForm`) vão precisar dele nas
+próximas aulas.
+
+Isso é o famoso **Prop Drilling** (ficar "furando" componentes passando
+propriedades para baixo). Estamos fazendo isso de propósito para sentirmos a
+necessidade de uma solução melhor no futuro.
