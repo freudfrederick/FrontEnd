@@ -1,109 +1,109 @@
-# ☁️ Criando a Context API e o Provider
+# 🛠️ Refatorando o Contexto: Provider e Custom Hook
 
-Nesta aula, vamos construir a base do nosso Estado Global usando a **Context
-API**. Em vez de usar o Contexto "cru" diretamente nos componentes, vamos seguir
-as melhores práticas do mercado: criaremos um componente _Provider_ dedicado e
-um _Custom Hook_ (Hook customizado) para facilitar o acesso aos dados.
+Chegou o momento de organizarmos nossa casa e criarmos as estruturas definitivas
+para o nosso Contexto: o Provider Customizado e o Custom Hook!
 
-Vamos fazer tudo em um arquivo só por enquanto para fins didáticos, mas não se
-assuste com o erro de _Fast Refresh_ no console — nós separaremos os arquivos no
-futuro!
+Nesta aula, vamos melhorar a forma como usamos a Context API. Usar o
+`<TaskContext.Provider>` diretamente no `App.tsx` e o `useContext(TaskContext)`
+espalhado pelos componentes funciona, mas deixa o código poluído e difícil de
+dar manutenção.
+
+A melhor prática no React é isolar essas responsabilidades. Vamos criar um
+componente específico para ser o "Pai" (Provider) e um atalho (Hook) para os
+"Filhos" consumirem os dados.
 
 ---
 
-## 🏗️ 1. O Arquivo do Contexto (`TaskContext.tsx`)
+## 📦 1. O Componente Provider e o Custom Hook
 
-Crie uma pasta `contexts` dentro de `src` e crie o arquivo `TaskContext.tsx`.
-Este arquivo fará três coisas:
+Vamos centralizar tudo relacionado ao contexto em um único arquivo.
 
-1. Definir o tipo (formato) do nosso contexto.
-2. Criar o Contexto em si.
-3. Criar o componente `TaskContextProvider` (que será o "Pai de Todos").
-4. Criar o Hook `useTaskContext` (que será usado pelos Filhos para acessar os
-   dados).
+> ⚠️ **Aviso sobre o Erro no Console (Fast Refresh):** > Ao colocar o Contexto,
+> o Provider e o Hook no mesmo arquivo, o Vite (ferramenta que roda nosso React)
+> pode reclamar no console dizendo: _"Fast refresh only works when a file only
+> exports components"_. **Não se preocupe com isso agora!** Mais para frente,
+> vamos separar isso em arquivos diferentes e o erro vai sumir.
 
 **Arquivo:** `src/contexts/TaskContext.tsx`
 
 ```tsx
 import { createContext, useContext } from 'react';
-import type { TaskStateModel } from '../models/TaskStateModel';
+import type { TaskStateModel } from '../../models/TaskStateModel';
 
-// 1. Tipagem do Contexto: Ele terá o `state` e a função `setState`
-export type TaskContextProps = {
+// 1. Trazemos o initialState para cá
+const initialState: TaskStateModel = {
+  tasks: [],
+  secondsRemaining: 0,
+  formattedSecondsRemaining: '00:00',
+  activeTask: null,
+  currentCycle: 0,
+  config: { workTime: 25, shortBreakTime: 5, longBreakTime: 15 },
+};
+
+type TaskContextProps = {
   state: TaskStateModel;
   setState: React.Dispatch<React.SetStateAction<TaskStateModel>>;
 };
 
-// 2. Criando o Valor Inicial "Fake"
-// (Isso é usado apenas se tentarmos acessar o contexto FORA do Provider, o que não faremos)
-const initialContextValue: TaskContextProps = {
-  state: {
-    tasks: [],
-    secondsRemaining: 0,
-    formattedSecondsRemaining: '00:00',
-    activeTask: null,
-    currentCycle: 0,
-    config: { workTime: 25, shortBreakTime: 5, longBreakTime: 15 },
-  },
-  setState: () => {}, // Função vazia de placeholder
+const initialContextValue = {
+  state: initialState,
+  setState: () => {}, // Função vazia provisória
 };
 
-// 3. Criando o Contexto em si
+// 2. Criação do Contexto
 export const TaskContext = createContext<TaskContextProps>(initialContextValue);
 
-// ==========================================
-
-// 4. Criando o Componente Provider (O "Pai de Todos")
+// ==============================================================
+// 3. NOSSO COMPONENTE PROVIDER CUSTOMIZADO
+// ==============================================================
 type TaskContextProviderProps = {
   children: React.ReactNode;
 };
 
 export function TaskContextProvider({ children }: TaskContextProviderProps) {
-  // Por enquanto, vamos passar o valor falso (initialContextValue)
-  // Na próxima aula, traremos o `useState` REAL para cá!
+  // O valor passado aqui na prop "value" é o que de fato vai para a aplicação!
   return (
-    <TaskContext.Provider value={initialContextValue}>
+    <TaskContext.Provider value={{ ...initialContextValue }}>
       {children}
     </TaskContext.Provider>
   );
 }
 
-// ==========================================
-
-// 5. Criando o Custom Hook (Para os "Filhos" usarem)
+// ==============================================================
+// 4. NOSSO CUSTOM HOOK (Atalho para os filhos)
+// ==============================================================
 export function useTaskContext() {
   return useContext(TaskContext);
 }
 ```
 
-## 🌍 2. Envolvendo a Aplicação com o Provider (`App.tsx`)
+## 🧹 2. Limpando o `App.tsx`
 
-Agora, vamos voltar ao `App.tsx`. Precisamos dizer que tudo o que está dentro do
-`App` tem acesso à nossa nuvem de dados. Para isso, "abraçamos" a `<Home />` com
-o nosso novo `TaskContextProvider`.
+Agora que temos o `TaskContextProvider`, nosso `App.tsx` fica muito mais
+elegante. Ele não precisa mais saber sobre o `TaskContext.Provider` cru, ele
+apenas usa o componente que acabamos de criar.
 
-**Arquivo:** `src/App.tsx`
+Arquivo: `src/App.tsx`
 
 ```tsx
 import { Home } from './pages/Home';
 import { useState } from 'react';
 import type { TaskStateModel } from './models/TaskStateModel';
-
-// Importamos o nosso novo Provider
 import { TaskContextProvider } from './contexts/TaskContext';
 
 import './styles/theme.css';
 import './styles/global.css';
 
 const initialState: TaskStateModel = {
-  // ... (mantenha o initialState aqui por enquanto)
+  // ... (mesmo objeto de antes)
 };
 
 export function App() {
+  // O estado REAL ainda está aqui, mas o Provider não está usando ele (ainda!)
   const [state, setState] = useState(initialState);
 
-  // Abraçamos a Home com o Provider!
   return (
+    // Usamos o nosso componente limpo e encapsulado
     <TaskContextProvider>
       <Home />
     </TaskContextProvider>
@@ -111,39 +111,36 @@ export function App() {
 }
 ```
 
-## 📥 3. Consumindo a Nuvem no Componente Filho (`CountDown.tsx`)
+## 🚀 3. Consumindo o Hook no CountDown
 
-Chegou a hora mágica. Vamos até um componente que está lá no fundo da árvore
-(Nível 3) e vamos acessar os dados do contexto **diretamente**, sem precisar
-pedir para a `Home`!
-
-Usaremos o nosso Custom Hook `useTaskContext`.
+Lembra que antes precisávamos importar o `useContext` do React E o
+`TaskContext`? Graças ao nosso Custom Hook, basta uma única importação para
+termos acesso à nossa "nuvem" de dados.
 
 **Arquivo:** `src/components/CountDown/index.tsx`
 
 ```tsx
 import styles from './styles.module.css';
 
-// Importamos APENAS o nosso Hook customizado!
+// 1. Importamos apenas o nosso Hook!
 import { useTaskContext } from '../../contexts/TaskContext';
 
 export function CountDown() {
-  // Pegamos a "nuvem" inteira
+  // 2. Chamamos o Hook
   const taskContext = useTaskContext();
 
-  // Vamos dar um console.log para provar que a mágica aconteceu
-  console.log(taskContext);
+  console.log(taskContext); // Teste no navegador!
 
   return <div className={styles.container}>00:00</div>;
 }
 ```
 
-## 🎯 O que provamos hoje?
+## 🧩 O Que Falta?
 
-Abra o console do seu navegador. Você verá que o `CountDown` conseguiu imprimir
-o objeto completo (`state` e `setState`)! Ele buscou essa informação diretamente
-do `TaskContextProvider` que está lá no `App.tsx`, passando reto pela `Home`.
+Fizemos uma refatoração arquitetural excelente, mas temos um pequeno detalhe
+técnico: nosso estado ainda não é reativo.
 
-**O Problema Atual:** Se você reparar, o valor que está chegando no `CountDown`
-é o nosso valor falso (`initialContextValue` que definimos no passo 2), e não o
-estado real que está vivendo no `App.tsx`.
+Se você olhar com atenção, o `TaskContextProvider` está passando o
+`initialContextValue` (que é estático e tem uma função `setState` vazia) para a
+aplicação. Enquanto isso, o useState de verdade ficou lá "esquecido" no
+`App.tsx`.
