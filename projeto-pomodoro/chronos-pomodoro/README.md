@@ -1,96 +1,23 @@
-# 🌐 Inicializando o Estado Global no `App`
+# 🕳️ Prop Drilling na Prática: Descendo o Estado
 
-Chegou a hora de sujarmos as mãos com o Estado Global no nível superior da nossa
-aplicação e entendermos na prática um conceito muito famoso no React: o Prop
-Drilling (perfuração de propriedades).
+Na aula passada, o estado nasceu no `App.tsx` e foi repassado para a página
+`Home`. Agora, precisamos que esse estado chegue aos componentes que realmente
+vão usá-lo: o `CountDown` e o `MainForm`.
 
-Nesta aula, vamos criar o estado da nossa aplicação no componente de nível mais
-alto: o `App.tsx`. A partir dele, começaremos a "descer" essas informações para
-as páginas e componentes filhos através de _props_.
-
-Isso vai gerar um caminho um pouco doloroso, mas muito didático, para
-entendermos por que ferramentas como a _Context API_ existem.
+Vamos fazer isso acontecer e observar os problemas que surgem com essa
+abordagem.
 
 ---
 
-## 🏗️ 1. O Estado Inicial (`App.tsx`)
+## 🚚 1. Repassando as Props na `Home`
 
-Primeiro, precisamos definir como o nosso estado começa quando o usuário abre a
-aplicação. Vamos criar um objeto `initialState` respeitando a tipagem do
-`TaskStateModel` que criamos na aula passada.
+Primeiro, vamos exportar o tipo `HomeProps` para podermos reutilizá-lo nos
+componentes filhos (isso poupa a gente de ter que recriar a mesma tipagem
+complexa em todo arquivo).
 
-Em seguida, usamos o `useState` e passamos o `state` e o `setState` como
-propriedades para a página `<Home />`.
-
-**Arquivo:** `src/App.tsx`
-
-```tsx
-import { Home } from './pages/Home';
-import { useState } from 'react';
-import type { TaskStateModel } from './models/TaskStateModel';
-
-import './styles/theme.css';
-import './styles/global.css';
-
-// 1. Definimos o valor inicial da nossa aplicação
-const initialState: TaskStateModel = {
-  tasks: [],
-  secondsRemaining: 0,
-  formattedSecondsRemaining: '00:00',
-  activeTask: null,
-  currentCycle: 0,
-  config: {
-    workTime: 25,
-    shortBreakTime: 5,
-    longBreakTime: 15,
-  },
-};
-
-export function App() {
-  // 2. Iniciamos o estado global
-  const [state, setState] = useState(initialState);
-
-  // 3. Repassamos o estado e a função que altera o estado para o componente filho
-  return <Home state={state} setState={setState} />;
-}
-```
-
-## ⚠️ 2. A Regra de Ouro do React: Imutabilidade
-
-Antes de irmos para a `Home`, o instrutor deixou um aviso importantíssimo sobre
-como atualizar objetos e arrays no estado do React. Você nunca deve alterar um
-objeto mutável diretamente!
-
-### ❌ O jeito ERRADO (Mutação direta):
-
-```tsx
-// Nunca faça isso! O React não vai perceber a mudança e a tela não vai atualizar.
-setState(prevState => {
-  prevState.currentCycle = 5;
-  return prevState;
-});
-```
-
-### ✅ O jeito CERTO (Criando um novo objeto com Spread Operator):
-
-```tsx
-// Sempre retorne um NOVO objeto, copiando tudo o que existia antes (...prevState)
-setState(prevState => {
-  return {
-    ...prevState,
-    currentCycle: 5,
-  };
-});
-```
-
-## 🚚 3. Recebendo o Estado via Props (`Home.tsx`)
-
-Agora, lá na página `Home`, precisamos avisar o TypeScript que este componente
-vai receber propriedades (`props`).
-
-A tipagem do `state` é fácil (`TaskStateModel`), mas a tipagem do `setState` é
-um pouco feia de se ver. No React, a função que altera o estado usa o tipo
-`React.Dispatch<React.SetStateAction<TipoDoEstado>>`.
+Depois, usamos o _spread operator_ (`{...props}`) para repassar **todas** as
+propriedades que a `Home` recebeu diretamente para o `CountDown` e para o
+`MainForm`.
 
 **Arquivo:** `src/pages/Home/index.tsx`
 
@@ -101,39 +28,133 @@ import { MainForm } from '../../components/MainForm';
 import type { TaskStateModel } from '../../models/TaskStateModel';
 import { MainTemplate } from '../../templates/MainTemplate';
 
-// 1. Tipamos o que a Home vai receber de presente do App
-type HomeProps = {
+// 1. Exportamos o tipo para reutilizar depois
+export type HomeProps = {
   state: TaskStateModel;
   setState: React.Dispatch<React.SetStateAction<TaskStateModel>>;
 };
 
 export function Home(props: HomeProps) {
-  // 2. Desestruturamos para facilitar o uso
-  const { state, setState } = props;
-
+  // A Home não usa o state, ela só serve de "ponte"
   return (
     <MainTemplate>
       <Container>
-        {/* Em breve, o CountDown vai precisar desse state... */}
-        <CountDown />
+        {/* 2. Repassamos tudo que a Home recebeu para o CountDown */}
+        <CountDown {...props} />
       </Container>
 
       <Container>
-        {/* ...e o MainForm também! */}
-        <MainForm />
+        {/* ...e para o MainForm! */}
+        <MainForm {...props} />
       </Container>
     </MainTemplate>
   );
 }
 ```
 
-## 🎯 Onde estamos e para onde vamos?
+## ⏱️ 2. Recebendo o Estado no `CountDown`
 
-Você percebeu o que aconteceu? O estado nasceu no `App`, foi enviado para a
-`Home`, mas a `Home` em si não usa esse estado para nada visual! Ela só recebeu
-o estado porque os filhos dela (`CountDown` e `MainForm`) vão precisar dele nas
-próximas aulas.
+Agora o nosso cronômetro finalmennte tem acesso ao tempo formatado que vem lá do
+`App.tsx`!
 
-Isso é o famoso **Prop Drilling** (ficar "furando" componentes passando
-propriedades para baixo). Estamos fazendo isso de propósito para sentirmos a
-necessidade de uma solução melhor no futuro.
+**Arquivo:** `src/components/CountDown/index.tsx`
+
+```tsx
+import type { HomeProps } from '../../pages/Home';
+import styles from './styles.module.css';
+
+// Usamos a tipagem exportada da Home
+export function CountDown({ state }: HomeProps) {
+  return (
+    {/* Exibe o tempo que está no estado global */}
+    <div className={styles.container}>{state.formattedSecondsRemaining}</div>
+  );
+}
+```
+
+## 📝 3. Recebendo e Alterando o Estado no `MainForm`
+
+Para testarmos se tudo está conectado, vamos exibir uma informação do estado (o
+tempo de trabalho) e criar um botão de teste que altera o estado global.
+
+⚠️ **Atenção**: Se atente à forma como o estado de `config` (que é um objeto
+dentro de outro objeto) é atualizado!
+
+**Arquivo:** `src/components/MainForm/index.tsx`
+
+```tsx
+import { PlayCircleIcon } from 'lucide-react';
+import { Cycles } from '../Cycles';
+import { DefaultButton } from '../DefaultButton';
+import { DefaultInput } from '../DefaultInput';
+import type { HomeProps } from '../../pages/Home';
+
+export function MainForm({ state, setState }: HomeProps) {
+  // Função de teste para alterar o estado global
+  function handleClick() {
+    setState(prevState => {
+      return {
+        ...prevState, // Copia o estado principal
+        config: {
+          ...prevState.config, // Copia o objeto 'config'
+          workTime: 34, // Altera apenas o workTime
+        },
+        formattedSecondsRemaining: '23:34', // Atualiza o cronômetro
+      };
+    });
+  }
+
+  return (
+    <form className='form' action=''>
+      <div>
+        {/* Botão de teste! type="button" evita que ele recarregue a página */}
+        <button type='button' onClick={handleClick}>
+          Testar Alteração de Estado
+        </button>
+      </div>
+
+      <div className='formRow'>
+        <DefaultInput
+          labelText='task'
+          id='meuInput'
+          type='text'
+          placeholder='Digite algo'
+        />
+      </div>
+
+      <div className='formRow'>
+        {/* Consumindo o estado global */}
+        <p>Próximo intervalo é de {state.config.workTime}min</p>
+      </div>
+
+      <div className='formRow'>
+        <Cycles />
+      </div>
+
+      <div className='formRow'>
+        <DefaultButton icon={<PlayCircleIcon />} />
+      </div>
+    </form>
+  );
+}
+```
+
+## 🚨 O Diagnóstico: Por que isso é ruim?
+
+Faça o teste: clique no botão "Testar Alteração de Estado" e veja que tanto o
+texto do formulário quanto o número do `CountDown` mudam simultaneamente. A
+engrenagem funciona!
+
+Mas pare e observe a arquitetura que criamos:
+
+1. O estado nasce no **App** (Nível 1).
+2. O App passa para a **Home** (Nível 2).
+3. A Home passa para o **MainForm** e **CountDown** (Nível 3).
+4. Em breve, o MainForm precisará passar esse estado para o `<Cycles />` e para
+   o `<DefaultButton />` (Nível 4).
+
+**A Regra do "Homem do Meio":** Se você tem um componente na sua árvore (como a
+nossa `<Home />`) que recebe uma propriedade apenas para passá-la para o filho,
+sem utilizá-la para mais nada, você está sofrendo de _Prop Drilling_. Em
+aplicações reais, com 10 ou 20 níveis de profundidade, isso vira um pesadelo de
+manutenção.
