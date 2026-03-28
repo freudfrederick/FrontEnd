@@ -1,107 +1,157 @@
-# ⚓ Capturando Dados sem Renderizar: A Técnica do `useRef`
+# 🚀 Criando a Primeira Tarefa: Iniciando a Lógica do Pomodoro
 
-Vamos explorar os Uncontrolled Components e conhecer mais um Hook poderoso do
-React: o useRef!
+Chegou a hora de dar o pontapé inicial na lógica da nossa aplicação criando a
+nossa primeira Tarefa (Task)!
 
-Na aula passada, vimos que os **Inputs Controlados** (com `useState`) fazem o
-componente atualizar a tela a cada tecla digitada. Embora isso geralmente não
-seja um problema de performance, existe uma outra forma de capturar dados de um
-formulário: os **Inputs Não-Controlados** usando o Hook `useRef`.
+A partir de agora, o nosso formulário vai ser o maestro da aplicação. É ele quem
+dita quando um ciclo começa, configura os tempos e prepara o terreno.
+Prepare-se, pois teremos mais lógica e um pouquinho de matemática a partir
+daqui!
 
----
-
-## 🧐 O que é o `useRef`?
-
-O `useRef` é como uma "caixa forte" dentro do seu componente. Você pode guardar
-qualquer valor lá dentro (um número, um objeto, ou até mesmo um elemento HTML
-inteiro!).
-
-A grande sacada do `useRef` é dupla:
-
-1. O valor sobrevive entre as renderizações do componente.
-2. **Alterar o valor do `useRef` NÃO faz o componente ser renderizado
-   novamente.**
-
-Sempre acessamos ou alteramos o valor salvo dentro de um ref através da
-propriedade `.current`.
+> 💡 **Dica do Instrutor:** Anote os pontos que achar mais complexos! Vamos
+> fazer várias coisas sequenciais (iniciar ciclo, contar tempo, finalizar ciclo,
+> preparar o próximo), e entender o "porquê" de cada etapa vai te ajudar muito
+> lá na frente.
 
 ---
 
-## 🛠️ Implementando o Input Não-Controlado (`MainForm.tsx`)
+## 🧹 1. Validando e Limpando o Input
 
-Em vez de guardarmos cada letra digitada, vamos usar o `useRef` para "agarrar" o
-elemento `<input>` real do HTML. Quando o usuário clicar em "Enviar", nós
-olhamos para esse input e pegamos o que está escrito lá dentro, de uma vez só!
+Antes de criar uma tarefa, precisamos ter certeza de que o usuário digitou algo
+válido. Vamos usar o `useRef` da aula passada, mas adicionando verificações de
+segurança e a função `.trim()` para remover espaços em branco inúteis.
 
 **Arquivo:** `src/components/MainForm/index.tsx`
 
 ```tsx
-import { PlayCircleIcon } from 'lucide-react';
-import { Cycles } from '../Cycles';
-import { DefaultButton } from '../DefaultButton';
-import { DefaultInput } from '../DefaultInput';
-import { useTaskContext } from '../../contexts/useTaskContext';
+function handleCreateNewTask(event: React.FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-// 1. Trocamos o import do useState pelo useRef
-import { useRef } from 'react';
+  // 1. Verificação de segurança (TypeScript): O input existe na tela?
+  if (taskNameInput.current === null) return;
 
-export function MainForm() {
-  const { setState } = useTaskContext();
+  // 2. Pegamos o valor e removemos espaços sobrando nas pontas (ex: "  Estudar  " vira "Estudar")
+  const taskName = taskNameInput.current.value.trim();
 
-  // 2. Criamos a referência e tipamos para o TypeScript saber que é um input
-  const taskNameInput = useRef<HTMLInputElement>(null);
-
-  function handleCreateNewTask(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    // 4. No momento do envio, acessamos o elemento HTML (.current) e pegamos o valor (.value)
-    console.log('DEU CERTO', taskNameInput.current?.value);
+  // 3. Validação do usuário: Ele digitou alguma coisa?
+  if (!taskName) {
+    alert('Digite o nome da tarefa'); // Substituiremos por um Toast depois!
+    return; // Interrompe a função aqui
   }
 
-  return (
-    <form onSubmit={handleCreateNewTask} className='form' action=''>
-      <div className='formRow'>
-        <DefaultInput
-          labelText='task'
-          id='meuInput'
-          type='text'
-          placeholder='Digite algo'
-          // 3. Removemos o 'value' e o 'onChange', e passamos a nossa ref para o input
-          ref={taskNameInput}
-        />
-      </div>
+  console.log('Passou na validação! Tarefa:', taskName);
+  // ... próximo passo ...
+}
+```
 
-      {/* ... (restante do código: Cycles, DefaultButton, etc) ... */}
-    </form>
+## 🏗️ 2. Montando o Objeto da Tarefa (`TaskModel`)
+
+Com o nome da tarefa em mãos, vamos construir o objeto que representa essa
+tarefa, seguindo a estrutura do nosso `TaskModel`.
+
+```tsx
+// Lembre-se de importar o modelo lá no topo do arquivo!
+import type { TaskModel } from '../../models/TaskModel';
+
+// ... dentro do handleCreateNewTask ...
+
+const newTask: TaskModel = {
+  // Usamos o timestamp (data em milissegundos) como ID único temporário
+  id: Date.now().toString(),
+  name: taskName,
+  startDate: new Date(),
+  completeDate: null,
+  interruptDate: null,
+  duration: 1, // Fixo temporariamente (vamos pegar do state depois)
+  type: 'workTime', // Fixo temporariamente
+};
+
+// Convertendo a duração (minutos) para segundos totais
+const secondsRemaining = newTask.duration * 60;
+```
+
+## 💾 3. Salvando a Tarefa no Estado Global
+
+Agora vem a parte crucial: injetar essa nova tarefa dentro da nossa "nuvem" (o
+Contexto). Para isso, vamos puxar o `setState` do nosso Hook e atualizar os
+valores.
+
+**Arquivo:** `src/components/MainForm/index.tsx` (Continuação da função)
+
+```tsx
+import { useTaskContext } from '../../contexts/useTaskContext'; // Não esqueça o import!
+
+export function MainForm() {
+  const { setState } = useTaskContext(); // Puxando a função do contexto
+  // ... useRef ...
+
+  function handleCreateNewTask(event: React.FormEvent<HTMLFormElement>) {
+    // ... validação ...
+    // ... criação da newTask e secondsRemaining ...
+
+    setState(prevState => {
+      return {
+        ...prevState,
+        // Garantindo que não vamos sobrescrever as configurações
+        config: { ...prevState.config },
+
+        // A tarefa recém-criada se torna a tarefa ativa
+        activeTask: newTask,
+
+        // Itens que vamos configurar nas próximas aulas (marcados como TODO/Conferir)
+        currentCycle: 1,
+        secondsRemaining,
+        formattedSecondsRemaining: '00:00',
+
+        // ATENÇÃO AQUI: Como adicionar um item em um Array no React!
+        // Criamos um NOVO array, espalhamos as tarefas antigas (...), e adicionamos a nova no final.
+        tasks: [...prevState.tasks, newTask],
+      };
+    });
+  }
+  // ...
+```
+
+## 👁️ 4. Monitorando o Estado com `useEffect` (Opcional/Debug)
+
+Para provar que tudo isso está funcionando, vamos colocar um "espião" lá no
+nosso Provider. Queremos que, toda vez que o estado mudar, ele imprima o estado
+atualizado no console. Para isso, usamos o Hook `useEffect`!
+
+**Arquivo:** `src/contexts/TaskContextProvider.tsx`
+
+```tsx
+import { useEffect, useState } from 'react'; // Importe o useEffect
+// ... imports ...
+
+export function TaskContextProvider({ children }: TaskContextProviderProps) {
+  const [state, setState] = useState(initialTaskState);
+
+  // O "Espião": Executa o console.log toda vez que a variável 'state' for alterada
+  useEffect(() => {
+    console.log('ESTADO ATUALIZADO:', state);
+  }, [state]);
+
+  return (
+    <TaskContext.Provider value={{ state, setState }}>
+      {children}
+    </TaskContext.Provider>
   );
 }
 ```
 
-## 🕵️‍♂️ Como a Mágica Acontece (Passo a Passo)
+## ✅ Testando na Prática
 
-1. Quando o React desenha a tela, ele vê a propriedade ref={taskNameInput} no
-   seu <DefaultInput />.
-2. O React pega o elemento HTML real do input (<input type="text"...>) e guarda
-   dentro de taskNameInput.current.
-3. O usuário digita "Estudar React". O componente não é re-renderizado.
-4. O usuário clica em enviar.
-5. A função handleCreateNewTask é chamada.
-6. Nós lemos taskNameInput.current.value, que neste exato segundo contém a
-   string "Estudar React".
+1. Salve tudo e abra o seu navegador.
+2. Abra o Console do desenvolvedor (`F12`).
+3. Digite o nome de uma tarefa (ex: "Estudar React") e clique no Play.
+4. Observe o console! Você verá um objeto gigante impresso.
+5. Abra esse objeto e confira:
 
-## ⚖️ Qual usar? `useState` (Controlado) ou `useRef` (Não-Controlado)?
+- O array `tasks` agora tem 1 item.
+- O `activeTask` contém o objeto da tarefa que você acabou de criar.
+- O `secondsRemaining` está com o valor de `60` (1 minuto).
 
-Como regra geral no mercado de React:
-
-- **Use** `useState` **(Controlado) quando:** Você precisar reagir imediatamente
-  ao que o usuário digita. Exemplos: mostrar uma mensagem de erro enquanto ele
-  digita uma senha curta, formatar um CPF automaticamente (`123.4...`), ou
-  desabilitar um botão até que o campo esteja preenchido.
-
-**Use** `useRef` **(Não-Controlado) quando:** Você só se importa com o valor
-**no momento do envio** do formulário. É mais simples, escreve menos código e
-evita renderizações desnecessárias.
-
-Como no nosso Pomodoro nós só precisamos saber o nome da tarefa quando o usuário
-clica no "Play", a técnica do `useRef` cai como uma luva. E é com ela que
-seguiremos!
+**Conseguimos!** Injetamos dados reais no nosso estado global. Na próxima aula,
+vamos começar a resolver aqueles itens marcados como "Conferir" (Ciclos e
+Formatação de Tempo).
