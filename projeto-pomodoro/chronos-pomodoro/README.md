@@ -1,157 +1,126 @@
-# 🚀 Criando a Primeira Tarefa: Iniciando a Lógica do Pomodoro
+# 🔄 Gerenciando os Ciclos do Pomodoro
 
-Chegou a hora de dar o pontapé inicial na lógica da nossa aplicação criando a
-nossa primeira Tarefa (Task)!
+Vamos focar em resolver um problema por vez, começando pela lógica de contagem
+dos ciclos do nosso Pomodoro!
 
-A partir de agora, o nosso formulário vai ser o maestro da aplicação. É ele quem
-dita quando um ciclo começa, configura os tempos e prepara o terreno.
-Prepare-se, pois teremos mais lógica e um pouquinho de matemática a partir
-daqui!
+A nossa aplicação possui um fluxo contínuo de ciclos (Tempo de Foco, Pausa
+Curta, Tempo de Foco... até a Pausa Longa). Para o nosso Pomodoro, vamos
+considerar que um fluxo completo tem 8 etapas.
 
-> 💡 **Dica do Instrutor:** Anote os pontos que achar mais complexos! Vamos
-> fazer várias coisas sequenciais (iniciar ciclo, contar tempo, finalizar ciclo,
-> preparar o próximo), e entender o "porquê" de cada etapa vai te ajudar muito
-> lá na frente.
+O nosso estado inicial começa no ciclo `0`. O objetivo agora é fazer com que, a
+cada nova tarefa criada, ele avance para `1, 2, 3...` e, quando chegar no ciclo
+`8`, ele reinicie voltando para o `1`.
+
+Como essa é uma lógica pura de JavaScript (não depende de telas ou Hooks), vamos
+separá-la em um arquivo utilitário.
 
 ---
 
-## 🧹 1. Validando e Limpando o Input
+## 🛠️ 1. Criando a Função Utilitária (`getNextCycle.ts`)
 
-Antes de criar uma tarefa, precisamos ter certeza de que o usuário digitou algo
-válido. Vamos usar o `useRef` da aula passada, mas adicionando verificações de
-segurança e a função `.trim()` para remover espaços em branco inúteis.
+Vamos criar uma pasta chamada `utils` dentro de `src`. Essa pasta servirá para
+guardarmos funções soltas e reaproveitáveis que resolvem problemas específicos
+de lógica.
+
+**Arquivo:** `src/utils/getNextCycle.ts`
+
+```typescript
+export function getNextCycle(currentCycle: number) {
+  // Se for o estado inicial (0) ou se finalizou o último ciclo (8), volta para 1.
+  // Caso contrário, apenas soma + 1 ao ciclo atual.
+  return currentCycle === 0 || currentCycle === 8 ? 1 : currentCycle + 1;
+}
+```
+
+## 🔌 2. Calculando o Ciclo no Formulário (`MainForm.tsx`)
+
+Agora precisamos aplicar essa lógica dentro do nosso formulário.
+
+Um detalhe importantíssimo: nós vamos calcular qual é o "próximo ciclo" fora da
+função de clique/envio do formulário. Por que? Porque os textos da nossa tela
+(como aquele parágrafo _"Próximo intervalo é de 25min"_) vão precisar saber qual
+é o ciclo atual antes mesmo do usuário clicar no botão de Play!
 
 **Arquivo:** `src/components/MainForm/index.tsx`
 
 ```tsx
-function handleCreateNewTask(event: React.FormEvent<HTMLFormElement>) {
-  event.preventDefault();
+import { useRef } from 'react';
+import { TaskModel } from '../../models/TaskModel';
+import { useTaskContext } from '../../contexts/useTaskContext';
+// 1. Importe a nossa nova função utilitária
+import { getNextCycle } from '../../utils/getNextCycle';
 
-  // 1. Verificação de segurança (TypeScript): O input existe na tela?
-  if (taskNameInput.current === null) return;
-
-  // 2. Pegamos o valor e removemos espaços sobrando nas pontas (ex: "  Estudar  " vira "Estudar")
-  const taskName = taskNameInput.current.value.trim();
-
-  // 3. Validação do usuário: Ele digitou alguma coisa?
-  if (!taskName) {
-    alert('Digite o nome da tarefa'); // Substituiremos por um Toast depois!
-    return; // Interrompe a função aqui
-  }
-
-  console.log('Passou na validação! Tarefa:', taskName);
-  // ... próximo passo ...
-}
-```
-
-## 🏗️ 2. Montando o Objeto da Tarefa (`TaskModel`)
-
-Com o nome da tarefa em mãos, vamos construir o objeto que representa essa
-tarefa, seguindo a estrutura do nosso `TaskModel`.
-
-```tsx
-// Lembre-se de importar o modelo lá no topo do arquivo!
-import type { TaskModel } from '../../models/TaskModel';
-
-// ... dentro do handleCreateNewTask ...
-
-const newTask: TaskModel = {
-  // Usamos o timestamp (data em milissegundos) como ID único temporário
-  id: Date.now().toString(),
-  name: taskName,
-  startDate: new Date(),
-  completeDate: null,
-  interruptDate: null,
-  duration: 1, // Fixo temporariamente (vamos pegar do state depois)
-  type: 'workTime', // Fixo temporariamente
-};
-
-// Convertendo a duração (minutos) para segundos totais
-const secondsRemaining = newTask.duration * 60;
-```
-
-## 💾 3. Salvando a Tarefa no Estado Global
-
-Agora vem a parte crucial: injetar essa nova tarefa dentro da nossa "nuvem" (o
-Contexto). Para isso, vamos puxar o `setState` do nosso Hook e atualizar os
-valores.
-
-**Arquivo:** `src/components/MainForm/index.tsx` (Continuação da função)
-
-```tsx
-import { useTaskContext } from '../../contexts/useTaskContext'; // Não esqueça o import!
+// ... imports dos componentes (DefaultInput, Cycles, etc) ...
 
 export function MainForm() {
-  const { setState } = useTaskContext(); // Puxando a função do contexto
-  // ... useRef ...
+  // 2. Agora precisamos puxar o 'state' também, além do 'setState'
+  const { state, setState } = useTaskContext();
+  const taskNameInput = useRef<HTMLInputElement>(null);
+
+  // 3. Calculamos o próximo ciclo ANTES do usuário fazer qualquer coisa.
+  // Como o estado inicial é 0, o nextCycle já começa valendo 1.
+  const nextCycle = getNextCycle(state.currentCycle);
 
   function handleCreateNewTask(event: React.FormEvent<HTMLFormElement>) {
-    // ... validação ...
-    // ... criação da newTask e secondsRemaining ...
+    event.preventDefault();
+
+    if (taskNameInput.current === null) return;
+    const taskName = taskNameInput.current.value.trim();
+    if (!taskName) {
+      alert('Digite o nome da tarefa');
+      return;
+    }
+
+    const newTask: TaskModel = {
+      id: Date.now().toString(),
+      name: taskName,
+      startDate: new Date(),
+      completeDate: null,
+      interruptDate: null,
+      duration: 1,
+      type: 'workTime',
+    };
+
+    const secondsRemaining = newTask.duration * 60;
 
     setState(prevState => {
       return {
         ...prevState,
-        // Garantindo que não vamos sobrescrever as configurações
         config: { ...prevState.config },
-
-        // A tarefa recém-criada se torna a tarefa ativa
         activeTask: newTask,
 
-        // Itens que vamos configurar nas próximas aulas (marcados como TODO/Conferir)
-        currentCycle: 1,
-        secondsRemaining,
-        formattedSecondsRemaining: '00:00',
+        // 4. Substituímos o valor fixo '1' pela nossa variável calculada
+        currentCycle: nextCycle,
 
-        // ATENÇÃO AQUI: Como adicionar um item em um Array no React!
-        // Criamos um NOVO array, espalhamos as tarefas antigas (...), e adicionamos a nova no final.
+        secondsRemaining, // Conferir depois
+        formattedSecondsRemaining: '00:00', // Conferir depois
         tasks: [...prevState.tasks, newTask],
       };
     });
   }
-  // ...
-```
 
-## 👁️ 4. Monitorando o Estado com `useEffect` (Opcional/Debug)
-
-Para provar que tudo isso está funcionando, vamos colocar um "espião" lá no
-nosso Provider. Queremos que, toda vez que o estado mudar, ele imprima o estado
-atualizado no console. Para isso, usamos o Hook `useEffect`!
-
-**Arquivo:** `src/contexts/TaskContextProvider.tsx`
-
-```tsx
-import { useEffect, useState } from 'react'; // Importe o useEffect
-// ... imports ...
-
-export function TaskContextProvider({ children }: TaskContextProviderProps) {
-  const [state, setState] = useState(initialTaskState);
-
-  // O "Espião": Executa o console.log toda vez que a variável 'state' for alterada
-  useEffect(() => {
-    console.log('ESTADO ATUALIZADO:', state);
-  }, [state]);
-
-  return (
-    <TaskContext.Provider value={{ state, setState }}>
-      {children}
-    </TaskContext.Provider>
-  );
+  // ... return do JSX ...
 }
 ```
 
-## ✅ Testando na Prática
+## 🧠 Entendendo o Fluxo de Renderização (O Pulo do Gato)
 
-1. Salve tudo e abra o seu navegador.
-2. Abra o Console do desenvolvedor (`F12`).
-3. Digite o nome de uma tarefa (ex: "Estudar React") e clique no Play.
-4. Observe o console! Você verá um objeto gigante impresso.
-5. Abra esse objeto e confira:
+Pode parecer um pouco confuso calcular o `nextCycle` fora da função de criar
+tarefa, mas o React funciona assim:
 
-- O array `tasks` agora tem 1 item.
-- O `activeTask` contém o objeto da tarefa que você acabou de criar.
-- O `secondsRemaining` está com o valor de `60` (1 minuto).
+1. A tela carrega. O `state.currentCycle` é 0.
+2. O componente lê a linha `const nextCycle = getNextCycle(0)`, então a variável
+   nextCycle passa a valer 1. A tela fica aguardando.
+3. O usuário digita uma tarefa e clica em Play.
+4. A função `handleCreateNewTask` é disparada e atualiza o estado global,
+   definindo o ciclo atual como 1.
+5. O estado mudou! O React re-renderiza todo o `<MainForm />`.
+6. O componente lê novamente a linha `const nextCycle = getNextCycle(1)`, e
+   agora a variável fica engatilhada valendo **2**, pronta para quando o usuário
+   finalizar essa tarefa e for iniciar a próxima.
 
-**Conseguimos!** Injetamos dados reais no nosso estado global. Na próxima aula,
-vamos começar a resolver aqueles itens marcados como "Conferir" (Ciclos e
-Formatação de Tempo).
+Nós estamos sempre um passo à frente, preparando os dados do próximo ciclo!
+
+Temos a gestão dos ciclos funcionando! Com essa informação em mãos, podemos
+determinar se o ciclo atual é um momento de Foco (`workTime`) ou uma Pausa
+(`breakTime`), além de ajustar a duração de acordo com as configurações.
