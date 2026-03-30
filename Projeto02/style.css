@@ -1,0 +1,183 @@
+:root {
+    --cor-primaria: #C80C16;
+    --cor-secundaria: #000000;
+    --cor-neutra: #FFFFFF;
+    --cor-fundo: #FFFFFF;
+    --fonte-titulos: 'Montserrat', sans-serif;
+    --fonte-texto: 'Roboto', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--fonte-texto);
+    background-color: var(--cor-fundo);
+}
+
+/* HEADER COMPACTO */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 40px;
+    background-color: var(--cor-primaria);
+    color: var(--cor-neutra);
+}
+
+.grupo-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo { width: 35px; }
+
+.nome-loja {
+    font-size: 16px;
+    font-family: var(--fonte-titulos);
+}
+
+.frase-header {
+    font-size: 16px;
+    font-family: var(--fonte-titulos);
+    text-transform: uppercase;
+}
+
+/* MENU BAR */
+.menu-bar {
+    background-color: #BD2027;
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    padding: 10px;
+    margin: 10px 40px;
+}
+
+.menu-bar a {
+    text-decoration: none;
+    color: var(--cor-neutra);
+    font-weight: bold;
+    font-size: 12px;
+}
+
+/* MOSAICO DE BANNERS - ALTURA CONTROLADA */
+.banner-grid {
+    display: flex;
+    gap: 10px;
+    padding: 0 40px;
+    height: 350px; /* Limita a altura para caber na tela  */
+    margin-bottom: 20px;
+}
+
+.col-lateral { flex: 1; }
+.col-central { flex: 2; }
+.col-direita { 
+    flex: 0.3; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+}
+
+.img-banner {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Recorta a imagem sem distorcer  */
+    border-radius: 12px;
+}
+
+/* VITRINE EM GRID FLEX */
+.vitrine { padding: 10px 40px; }
+
+.grid-produtos {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap; /* Permite quebra se necessário  */
+}
+
+.card-produto {
+    background: #f4f4f4;
+    width: 180px;
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.card-produto img {
+    width: 100%;
+    height: 140px;
+    object-fit: contain;
+    margin-bottom: 10px;
+}
+
+.card-produto h3 {
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+}
+
+.preco {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--cor-secundaria);
+    margin-bottom: 10px;
+}
+
+.botao-carrinho {
+    background: var(--cor-primaria);
+    color: var(--cor-neutra);
+    border: none;
+    padding: 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: bold;
+    font-size: 9px;
+    text-transform: uppercase;
+}
+
+/* RODAPÉ E EXTRAS */
+.frete {
+    background: var(--cor-primaria);
+    color: var(--cor-neutra);
+    text-align: center;
+    padding: 15px;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+.footer {
+    background: var(--cor-secundaria);
+    color: var(--cor-neutra);
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.footer-links {
+    display: flex;
+    gap: 20px;
+}
+
+.footer-links a {
+    color: var(--cor-neutra);
+    text-decoration: none;
+    font-size: 10px;
+}
+
+.copyright {
+    font-size: 10px;
+    color: #888;
+}
