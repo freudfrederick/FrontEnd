@@ -18,7 +18,6 @@ body {
     background-color: var(--cor-fundo);
 }
 
-/* HEADER COMPACTO */
 .header {
     display: flex;
     justify-content: space-between;
