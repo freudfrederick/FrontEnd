@@ -10,13 +10,14 @@ import { getNextCycleType } from '../../utils/getNextCycleType';
 import { TaskActionTypes } from '../../contexts/TaskContext/taskActions';
 import { Tips } from '../Tips';
 import { showMessage } from '../../adapters/showMessage';
+import { createTask, interruptTask } from '../../services/apiService';
 
 export function MainForm() {
   const { state, dispatch } = useTaskContext();
   const taskNameInput = useRef<HTMLInputElement>(null);
   const lastTaskName = state.tasks[state.tasks.length - 1]?.name || '';
 
-  function handleCreateNewTask(event: React.FormEvent<HTMLFormElement>) {
+  async function handleCreateNewTask(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     showMessage.dismiss();
 
@@ -42,13 +43,36 @@ export function MainForm() {
       type: nextCyleType,
     };
 
+    // Salva na API
+    try {
+      await createTask({
+        id: newTask.id,
+        name: newTask.name,
+        duration: newTask.duration,
+        type: newTask.type,
+        startDate: newTask.startDate,
+      });
+    } catch {
+      console.warn('API indisponível, task salva apenas localmente.');
+    }
+
     dispatch({ type: TaskActionTypes.START_TASK, payload: newTask });
     showMessage.success('Tarefa iniciada');
   }
 
-  function handleInterruptTask() {
+  async function handleInterruptTask() {
     showMessage.dismiss();
     showMessage.error('Tarefa interrompida!');
+
+    // Atualiza na API
+    if (state.activeTask) {
+      try {
+        await interruptTask(state.activeTask.id);
+      } catch {
+        console.warn('API indisponível, interrupção salva apenas localmente.');
+      }
+    }
+
     dispatch({ type: TaskActionTypes.INTERRUPT_TASK });
   }
 

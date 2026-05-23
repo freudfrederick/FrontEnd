@@ -6,7 +6,7 @@ import { TimerWorkerManager } from '../../workers/TimerWorkerManager';
 import { TaskActionTypes } from './taskActions';
 import { loadBeep } from '../../utils/loadBeep';
 import type { TaskStateModel } from '../../models/TaskStateModel';
-import { getSettings } from '../../services/apiService';
+import { getSettings, completeTask } from '../../services/apiService';
 
 type TaskContextProviderProps = {
   children: React.ReactNode;
@@ -26,7 +26,13 @@ export function TaskContextProvider({ children }: TaskContextProviderProps) {
   });
 
   const playBeepRef = useRef<ReturnType<typeof loadBeep> | null>(null);
+  const activeTaskRef = useRef(state.activeTask);
   const worker = TimerWorkerManager.getInstance();
+
+  // Mantém ref atualizada com a activeTask
+  useEffect(() => {
+    activeTaskRef.current = state.activeTask;
+  }, [state.activeTask]);
 
   // Carrega settings da API no startup
   useEffect(() => {
@@ -54,6 +60,14 @@ export function TaskContextProvider({ children }: TaskContextProviderProps) {
           playBeepRef.current();
           playBeepRef.current = null;
         }
+
+        // Marca task como completa na API
+        if (activeTaskRef.current) {
+          completeTask(activeTaskRef.current.id).catch(() => {
+            console.warn('API indisponível, conclusão salva apenas localmente.');
+          });
+        }
+
         dispatch({ type: TaskActionTypes.COMPLETE_TASK });
         worker.terminate();
       } else {
