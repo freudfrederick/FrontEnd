@@ -8,6 +8,11 @@ export const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Serializa BigInt como string no JSON
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
