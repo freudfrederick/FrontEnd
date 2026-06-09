@@ -1,35 +1,27 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { authMiddleware, type AuthRequest } from '../middlewares/auth.middleware.js';
 
 export const settingsRouter = Router();
+settingsRouter.use(authMiddleware);
 
-settingsRouter.get('/', async (_req, res) => {
-  let settings = await prisma.settings.findUnique({ where: { id: 1 } });
+settingsRouter.get('/', async (req: AuthRequest, res) => {
+  let settings = await prisma.settings.findUnique({ where: { userId: req.userId! } });
   if (!settings) {
-    settings = await prisma.settings.create({
-      data: { id: 1, workTime: 25, shortBreakTime: 5, longBreakTime: 15 },
-    });
+    settings = await prisma.settings.create({ data: { userId: req.userId!, workTime: 25, shortBreakTime: 5, longBreakTime: 15 } });
   }
-  return res.json(settings);
+  res.json(settings);
 });
 
-settingsRouter.put('/', async (req, res) => {
-  const { workTime, shortBreakTime, longBreakTime } = req.body as {
-    workTime: number;
-    shortBreakTime: number;
-    longBreakTime: number;
-  };
-  if (
-    !Number.isInteger(workTime) ||
-    !Number.isInteger(shortBreakTime) ||
-    !Number.isInteger(longBreakTime)
-  ) {
-    return res.status(400).json({ message: 'Valores inválidos' });
+settingsRouter.put('/', async (req: AuthRequest, res) => {
+  const { workTime, shortBreakTime, longBreakTime } = req.body as { workTime: number; shortBreakTime: number; longBreakTime: number };
+  if (!Number.isInteger(workTime) || !Number.isInteger(shortBreakTime) || !Number.isInteger(longBreakTime)) {
+    res.status(400).json({ message: 'Valores inválidos' }); return;
   }
   const settings = await prisma.settings.upsert({
-    where: { id: 1 },
+    where: { userId: req.userId! },
     update: { workTime, shortBreakTime, longBreakTime },
-    create: { id: 1, workTime, shortBreakTime, longBreakTime },
+    create: { userId: req.userId!, workTime, shortBreakTime, longBreakTime },
   });
-  return res.json(settings);
+  res.json(settings);
 });

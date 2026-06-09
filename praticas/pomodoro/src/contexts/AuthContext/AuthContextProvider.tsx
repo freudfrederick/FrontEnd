@@ -1,35 +1,39 @@
 import { useState, type ReactNode } from 'react';
-import { AuthContext, MOCK_CREDENTIALS } from './AuthContext';
+import { AuthContext } from './AuthContext';
+import type { ApiUser } from '../../services/apiService';
+import { loginUser, setToken, clearToken } from '../../services/apiService';
 
 type AuthContextProviderProps = {
   children: ReactNode;
 };
 
+function loadUser(): ApiUser | null {
+  try {
+    const raw = sessionStorage.getItem('user');
+    return raw ? (JSON.parse(raw) as ApiUser) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthContextProvider({ children }: AuthContextProviderProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('isAuthenticated') === 'true';
-  });
+  const [user, setUser] = useState<ApiUser | null>(loadUser);
+  const isAuthenticated = user !== null && sessionStorage.getItem('token') !== null;
 
-  function login(username: string, password: string): boolean {
-    const isValid =
-      username === MOCK_CREDENTIALS.username &&
-      password === MOCK_CREDENTIALS.password;
-
-    if (isValid) {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('isAuthenticated', 'true');
-    }
-
-    return isValid;
+  async function login(email: string, password: string): Promise<void> {
+    const data = await loginUser({ email, password });
+    setToken(data.token);
+    sessionStorage.setItem('user', JSON.stringify(data.user));
+    setUser(data.user);
   }
 
   function logout() {
-    setIsAuthenticated(false);
-    sessionStorage.removeItem('isAuthenticated');
+    clearToken();
+    setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

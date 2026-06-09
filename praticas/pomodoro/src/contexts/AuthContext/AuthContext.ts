@@ -1,18 +1,16 @@
 import { createContext } from 'react';
-
-export const MOCK_CREDENTIALS = {
-  username: 'freud@iesb',
-  password: 'iesb',
-};
+import type { ApiUser } from '../../services/apiService';
 
 export type AuthContextType = {
   isAuthenticated: boolean;
-  login: (username: string, password: string) => boolean;
+  user: ApiUser | null;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 };
 
 export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
-  login: () => false,
+  user: null,
+  login: async () => {},
   logout: () => {},
 });
