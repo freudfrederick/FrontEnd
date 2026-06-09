@@ -67,7 +67,7 @@ export function Login() {
     const password = (form.elements.namedItem('password') as HTMLInputElement).value.trim();
     const confirm = (form.elements.namedItem('confirm') as HTMLInputElement).value.trim();
     if (!name || !email || !password) { showFeedback('Preencha todos os campos.', 'error'); return; }
-    if (password.length < 6) { showFeedback('Senha deve ter ao menos 6 caracteres.', 'error'); return; }
+    if (password.length < 1) { showFeedback('Digite uma senha.', 'error'); return; }
     if (password !== confirm) { showFeedback('As senhas não coincidem.', 'error'); return; }
     setIsSubmitting(true);
     try {
@@ -111,7 +111,7 @@ export function Login() {
     const newPassword = (form.elements.namedItem('newPassword') as HTMLInputElement).value.trim();
     const confirm = (form.elements.namedItem('confirm') as HTMLInputElement).value.trim();
     if (!token || !newPassword) { showFeedback('Preencha todos os campos.', 'error'); return; }
-    if (newPassword.length < 6) { showFeedback('Senha deve ter ao menos 6 caracteres.', 'error'); return; }
+    if (newPassword.length < 1) { showFeedback('Digite uma senha.', 'error'); return; }
     if (newPassword !== confirm) { showFeedback('As senhas não coincidem.', 'error'); return; }
     setIsSubmitting(true);
     try {
@@ -186,7 +186,7 @@ export function Login() {
             <div className={styles.field}>
               <label htmlFor="password" className={styles.label}>Senha</label>
               <input id="password" name="password" type="password"
-                className={styles.input} placeholder="Mínimo 6 caracteres"
+                className={styles.input} placeholder="Sua senha"
                 autoComplete="new-password" disabled={isSubmitting} />
             </div>
             <div className={styles.field}>
@@ -236,7 +236,7 @@ export function Login() {
             <div className={styles.field}>
               <label htmlFor="newPassword" className={styles.label}>Nova senha</label>
               <input id="newPassword" name="newPassword" type="password"
-                className={styles.input} placeholder="Mínimo 6 caracteres"
+                className={styles.input} placeholder="Nova senha"
                 autoComplete="new-password" disabled={isSubmitting} />
             </div>
             <div className={styles.field}>

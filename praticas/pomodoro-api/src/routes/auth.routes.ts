@@ -12,7 +12,7 @@ const JWT_EXPIRES_IN = '7d';
 authRouter.post('/register', async (req, res) => {
   const { email, name, password } = req.body as { email: string; name: string; password: string };
   if (!email || !name || !password) { res.status(400).json({ message: 'email, name e password são obrigatórios' }); return; }
-  if (password.length < 6) { res.status(400).json({ message: 'Senha deve ter ao menos 6 caracteres' }); return; }
+  if (password.length < 1) { res.status(400).json({ message: 'Senha' }); return; }
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) { res.status(409).json({ message: 'E-mail já cadastrado' }); return; }
   const passwordHash = await bcrypt.hash(password, 10);
@@ -47,10 +47,12 @@ authRouter.post('/forgot-password', async (req, res) => {
 authRouter.post('/reset-password', async (req, res) => {
   const { token, newPassword } = req.body as { token: string; newPassword: string };
   if (!token || !newPassword) { res.status(400).json({ message: 'token e newPassword são obrigatórios' }); return; }
-  if (newPassword.length < 6) { res.status(400).json({ message: 'Senha deve ter ao menos 6 caracteres' }); return; }
+  if (newPassword.length < 1) { res.status(400).json({ message: 'Senha' }); return; }
   const user = await prisma.user.findFirst({ where: { resetToken: token, resetTokenExp: { gt: new Date() } } });
   if (!user) { res.status(400).json({ message: 'Token inválido ou expirado' }); return; }
   const passwordHash = await bcrypt.hash(newPassword, 10);
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash, resetToken: null, resetTokenExp: null } });
   res.json({ message: 'Senha redefinida com sucesso' });
 });
+
+

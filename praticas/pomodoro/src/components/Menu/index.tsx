@@ -21,8 +21,9 @@ export function Menu() {
     return storageTheme;
   });
 
-  const { logout } = useAuthContext();
+  const { logout, user } = useAuthContext();
   const navigate = useNavigate();
+  const initials = user?.name ? user.name.trim().split(' ').slice(0, 2).map(n => n[0].toUpperCase()).join('') : '?';
 
   const nextThemeIcon = {
     dark: <SunIcon />,
@@ -46,7 +47,14 @@ export function Menu() {
   }, [theme]);
 
   return (
-    <nav className={styles.menu}>
+    <div className={styles.menuWrapper}>
+      {user && (
+        <div className={styles.userBadge} title={user.name}>
+          <span className={styles.userAvatar}>{initials}</span>
+          <span className={styles.userName}>{user.name.split(' ')[0]}</span>
+        </div>
+      )}
+      <nav className={styles.menu}>
       <RouterLink className={styles.menuLink} href='/home/' aria-label='Ir para a Home' title='Ir para a Home'>
         <HouseIcon />
       </RouterLink>
@@ -63,5 +71,6 @@ export function Menu() {
         <LogOutIcon />
       </a>
     </nav>
+    </div>
   );
 }
